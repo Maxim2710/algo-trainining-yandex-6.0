@@ -1,0 +1,1 @@
+# algo-traninings-yandex-6.0
