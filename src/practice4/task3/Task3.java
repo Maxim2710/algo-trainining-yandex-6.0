@@ -6,7 +6,7 @@ import java.util.*;
 public class Task3 {
     public static void main(String[] args) {
         try {
-            BufferedReader reader = new BufferedReader(new FileReader("src/practice4/task3/inp.txt"));
+            BufferedReader reader = new BufferedReader(new FileReader("src/practice4/task3/input.txt"));
 
             int n = Integer.parseInt(reader.readLine().trim());
 
