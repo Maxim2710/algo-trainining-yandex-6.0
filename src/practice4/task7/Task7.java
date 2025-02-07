@@ -4,121 +4,121 @@ import java.io.*;
 import java.util.*;
 
 public class Task7 {
+    static long ans;
+    static boolean bad;
+    static long[] factorial;
+    static int mod;
+    static ArrayList<Integer>[] g;
+    static boolean[] visited;
+
+    static int getAns(int num, boolean isRoot, int father) {
+        if (bad) return 0;
+
+        if (isRoot && g[num].size() == 1 && g[g[num].get(0)].size() > 1) {
+            getAns(g[num].get(0), true, -1);
+            return 0;
+        }
+
+        visited[num] = true;
+        int cntBigChilds = 0;
+        int subtreeSize = 1;
+
+        for (int child : g[num]) {
+            if (bad) return 0;
+
+            if (visited[child] && child != father) {
+                bad = true;
+                return 0;
+            } else if (!visited[child]) {
+                int cSize = getAns(child, false, num);
+                subtreeSize += cSize;
+
+                if (cSize >= 2) cntBigChilds++;
+
+                if ((isRoot && cntBigChilds > 2) || (!isRoot && cntBigChilds > 1)) {
+                    bad = true;
+                    return 0;
+                }
+            }
+        }
+
+        int cntSmallChilds = g[num].size() - cntBigChilds - 1 + (isRoot ? 1 : 0);
+        ans = (ans * factorial[cntSmallChilds]) % mod;
+
+        if (isRoot) {
+            ans = (ans * 2) % mod;
+
+            if ((cntSmallChilds > 0 && cntBigChilds > 0) || (cntBigChilds == 2))
+                ans = (ans * 2) % mod;
+        }
+
+        return subtreeSize;
+    }
+
     public static void main(String[] args) throws IOException {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        String line = br.readLine();
-        while (line != null && line.trim().isEmpty()){
-            line = br.readLine();
-        }
-        assert line != null;
-        int n = Integer.parseInt(line.trim());
+        String[] firstLine = br.readLine().trim().split("\\s+");
+        int n = Integer.parseInt(firstLine[0]);
+        int m = Integer.parseInt(firstLine[1]);
+        mod = Integer.parseInt(firstLine[2]);
 
-        ArrayList<Integer>[] graph = new ArrayList[n+1];
-        for (int i = 1; i <= n; i++){
-            graph[i] = new ArrayList<>();
+        if (m > n - 1) {
+            System.out.println(0);
+            return;
         }
 
-        for (int i = 1; i < n; i++){
-            String s = br.readLine();
-            while (s != null && s.trim().isEmpty()){
-                s = br.readLine();
+        factorial = new long[n + 1];
+        factorial[0] = 1;
+
+        if (n >= 1) {
+            factorial[1] = 1;
+        }
+
+        for (int i = 2; i <= n; i++) {
+            factorial[i] = (factorial[i - 1] * i) % mod;
+        }
+
+        g = new ArrayList[n + 1];
+
+        for (int i = 0; i <= n; i++) {
+            g[i] = new ArrayList<>();
+        }
+
+        bad = false;
+        ans = 1;
+        int lonely = 0;
+        int trees = 0;
+        visited = new boolean[n + 1];
+
+        for (int i = 0; i < m; i++) {
+            String[] edgeLine = br.readLine().trim().split("\\s+");
+            int a = Integer.parseInt(edgeLine[0]);
+            int b = Integer.parseInt(edgeLine[1]);
+            g[a].add(b);
+            g[b].add(a);
+        }
+
+        for (int i = 1; i <= n; i++) {
+            if (!visited[i] && g[i].size() > 0) {
+                trees++;
+                getAns(i, true, -1);
             }
-            StringTokenizer st = new StringTokenizer(s);
-            int u = Integer.parseInt(st.nextToken());
-            int v = Integer.parseInt(st.nextToken());
-            graph[u].add(v);
-            graph[v].add(u);
-        }
 
-        String sCosts = br.readLine();
-        while (sCosts != null && sCosts.trim().isEmpty()){
-            sCosts = br.readLine();
-        }
-
-        assert sCosts != null;
-        StringTokenizer stCosts = new StringTokenizer(sCosts);
-        long[] cost = new long[n+1];
-        for (int i = 1; i <= n; i++){
-            cost[i] = Long.parseLong(stCosts.nextToken());
-        }
-
-        long[] dp0 = new long[n+1];
-        long[] dp1 = new long[n+1];
-
-        int[] parent = new int[n+1];
-        int[] pos = new int[n+1];
-
-        int[] stack = new int[n];
-        int top = 0;
-        stack[0] = 1;
-        parent[1] = 0;
-        Arrays.fill(pos, 0);
-
-        while(top >= 0){
-            int v = stack[top];
-            if (pos[v] < graph[v].size()){
-                int u = graph[v].get(pos[v]);
-                pos[v]++;
-                if (u == parent[v]) continue;
-                parent[u] = v;
-                top++;
-                stack[top] = u;
-            } else {
-
-                top--;
-                dp0[v] = 0;
-                dp1[v] = cost[v];
-                for (int u : graph[v]) {
-                    if (u == parent[v]) continue;
-                    dp0[v] += dp1[u];
-                    dp1[v] += Math.min(dp0[u], dp1[u]);
-                }
+            if (g[i].isEmpty()) {
+                lonely++;
             }
         }
 
-        long bestCost = (n == 1) ? dp1[1] : Math.min(dp0[1], dp1[1]);
-
-        boolean[] chosen = new boolean[n+1];
-        if (n == 1) {
-            chosen[1] = true;
+        if (bad) {
+            System.out.println(0);
         } else {
-            chosen[1] = (dp1[1] < dp0[1]);
-        }
+            ans = (ans * factorial[trees]) % mod;
+            int notLonely = n - lonely;
 
-        int[] stack2 = new int[n];
-        int top2 = 0;
-        stack2[0] = 1;
-        while (top2 >= 0){
-            int v = stack2[top2];
-            top2--;
-            for (int u : graph[v]) {
-                if (u == parent[v]) continue;
-                if (!chosen[v]){
-                    chosen[u] = true;
-                } else {
-                    chosen[u] = (dp1[u] < dp0[u]);
-                }
-                top2++;
-                stack2[top2] = u;
+            for (int i = 0; i < lonely; i++) {
+                ans = (ans * (2L + notLonely + i)) % mod;
             }
+            System.out.println(ans);
         }
-
-        int countChosen = 0;
-        for (int i = 1; i <= n; i++){
-            if(chosen[i])
-                countChosen++;
-        }
-
-        PrintWriter out = new PrintWriter(new BufferedOutputStream(System.out));
-        out.println(bestCost + " " + countChosen);
-
-        StringBuilder sb = new StringBuilder();
-        for (int i = 1; i <= n; i++){
-            if(chosen[i])
-                sb.append(i).append(" ");
-        }
-        out.println(sb.toString().trim());
-        out.flush();
     }
 }
-
